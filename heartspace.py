@@ -3,8 +3,8 @@ import tensorflow as tf
 import tensorflow.contrib.layers as layers
 import math
 from tensorflow.contrib.layers import xavier_initializer, batch_norm
-from componet.position_embedding import *
-from componet.mult_head_attention import *
+from component.position_embedding import *
+from component.mult_head_attention import *
 
 def convert_image_data_to_float(image_raw):
     img_float = tf.div(tf.cast(image_raw, tf.float32), 200.0)
