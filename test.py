@@ -204,7 +204,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--m', type=str, default='heartspace' ,help=u"model name")
 args = parser.parse_args()
 '******************************************************************'
-with open('./sample_hr.pkl', 'rb') as f:
+with open('sample_hr.pkl', 'rb') as f:
     [id_set, mtx] = pickle.load(f)
 
 
