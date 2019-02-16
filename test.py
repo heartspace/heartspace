@@ -204,13 +204,11 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--m', type=str, default='heartspace' ,help=u"model name")
 args = parser.parse_args()
 '******************************************************************'
-with open('sample_hr.pkl', 'rb') as f:
+with open('./sample_hr.pkl', 'rb') as f:
     [id_set, mtx] = pickle.load(f)
-
 
 dates = list(set([d for id in mtx for d in mtx[id]]))
 dic_dv = {d:Date2v(d) for d in dates}
-
 
 dict_user, reverse_dict_user = convert2idx(id_set, 1, is_set=False)
 dict_user['nan'] = 0; reverse_dict_user[0] = 'nan'
@@ -240,7 +238,7 @@ for epoch_idx, epoch in enumerate(gen_epochs(10, mtx, num_input, num_pos, num_ne
 
     alg.save_weight(model_dir)
 print('loss_list', loss_list)
-###################output#####################################################################
+'*******************output embeds************************************'
 avg_out_file = './agg_' + str(args.m) + '_embed.txt'
 daily_out_file = './daily_' + str(args.m) + '_embed.txt'
 

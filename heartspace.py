@@ -3,18 +3,13 @@ import tensorflow as tf
 import tensorflow.contrib.layers as layers
 import math
 from tensorflow.contrib.layers import xavier_initializer, batch_norm
-from component.position_embedding import *
-from component.mult_head_attention import *
+from componet.position_embedding import *
+from componet.mult_head_attention import *
 
 def convert_image_data_to_float(image_raw):
     img_float = tf.div(tf.cast(image_raw, tf.float32), 200.0)
     return img_float
 
-def lrelu(x, leak=0.2, name="lrelu"):
-    with tf.variable_scope(name):
-        f1 = 0.5 * (1 + leak)
-        f2 = 0.5 * (1 - leak)
-        return f1 * x + f2 * abs(x)
 
 class heartspaceNN(object):
     def __init__(self, **kwargs):
@@ -173,25 +168,23 @@ class heartspaceNN(object):
             current_input = self.decoder(shapes, current_input)
             return bottle_neck_vec, current_input
 
-    def node2vec(self, central_image, pos_image, neg_image, train_phase):
-        central_dim0, central_dim1, central_dim2, central_dim3 = tf.unstack(tf.shape(central_image))  # batch_size, num_pos, height, width
+    def caes(self, central_image, pos_image, neg_image, train_phase):
+        central_dim0, num_input, central_height, central_width = tf.unstack(tf.shape(central_image))  # batch_size, num_input, height, width
         central_embed, central_decode_input = self.cae(central_image, train_phase, reuse = False)
-        central_embed = tf.reshape(central_embed, [-1, central_dim1, self.image_featuredim])
-        # central_embed = tf.expand_dims(tf.reduce_mean(central_embed, axis=1), axis = 1)
-        central_decode_input = tf.reshape(central_decode_input, [-1, central_dim1, central_dim2, central_dim3])
-        print('central_dim3_embed', central_embed)
+        central_embed = tf.reshape(central_embed, [-1, num_input, self.image_featuredim])
+        central_decode_input = tf.reshape(central_decode_input, [-1, num_input, central_height, central_width])
+        print('central_embed', central_embed)
 
-        pos_dim0, pos_dim1, pos_dim2, pos_dim3 = tf.unstack(tf.shape(pos_image))  # batch_size, num_pos, height, width
+        pos_dim0, num_pos, pos_height, pos_width = tf.unstack(tf.shape(pos_image))  # batch_size, num_pos, height, width
         pos_embed, pos_decode_input = self.cae(pos_image, train_phase, reuse = True)
-        pos_embed = tf.reshape(pos_embed, [-1, pos_dim1, self.image_featuredim])
-        # pos_embed = tf.expand_dims(tf.reduce_mean(pos_embed, axis=1), axis = 1)
-        pos_decode_input = tf.reshape(pos_decode_input, [-1, pos_dim1, pos_dim2, pos_dim3])
-        print('pos_dim3_embed', pos_embed)
+        pos_embed = tf.reshape(pos_embed, [-1, num_pos, self.image_featuredim])
+        pos_decode_input = tf.reshape(pos_decode_input, [-1, num_pos, pos_height, pos_width])
+        print('pos_embed', pos_embed)
 
-        neg_dim0, neg_dim1, neg_dim2, neg_dim3 = tf.unstack(tf.shape(neg_image))  # batch_size, num_pos, height, width
+        neg_dim0, num_neg, neg_height, neg_width = tf.unstack(tf.shape(neg_image))  # batch_size, num_pos, height, width
         neg_embed, neg_decode_input = self.cae(neg_image, train_phase, reuse = True)
-        neg_embed = tf.reshape(neg_embed, [-1, neg_dim1, self.image_featuredim])
-        neg_decode_input = tf.reshape(neg_decode_input, [-1, neg_dim1, neg_dim2, neg_dim3])
+        neg_embed = tf.reshape(neg_embed, [-1, num_neg, self.image_featuredim])
+        neg_decode_input = tf.reshape(neg_decode_input, [-1, num_neg, neg_height, neg_width])
         print('neg_embed', neg_embed)
         return central_embed, pos_embed, neg_embed, central_decode_input, pos_decode_input, neg_decode_input
 
@@ -288,22 +281,27 @@ class heartspaceNN(object):
                                               initializer=layers.xavier_initializer())
             self.date_embeddings = self.date_embeddings.assign(get_position_encoding(2000,self.image_featuredim))
 
+            'data preprocessing'
             f_central_motifImage = convert_image_data_to_float(central_motifImage)
             f_pos_motifImage = convert_image_data_to_float(pos_motifImage)
             f_neg_motifImage = convert_image_data_to_float(neg_motifImage)
             f_input_motifImage = convert_image_data_to_float(input_motifImage)
 
+            'mask for loss function in autoencoder component'
             f_central_motifImage_mask = tf.greater(f_central_motifImage, 0)
             f_pos_motifImage_mask = tf.greater(f_pos_motifImage, 0)
             f_neg_motifImage_mask = tf.greater(f_neg_motifImage, 0)
 
+            'Day-Specific Time Series Encoding'
             central_embed, pos_embed, neg_embed,\
-            central_decode_input, pos_decode_input, neg_decode_input = self.node2vec(f_central_motifImage, f_pos_motifImage, f_neg_motifImage, self.train_phase)
+            central_decode_input, pos_decode_input, neg_decode_input = self.caes(f_central_motifImage, f_pos_motifImage, f_neg_motifImage, self.train_phase)
 
+            'Temporal Pattern Aggregation Network'
             central_date_embed = tf.nn.embedding_lookup(self.date_embeddings, central_date)
             agg_central_embed, alpha = self.aggregation(central_embed, central_date_embed, reuse=False)
             print('agg_central_embed', agg_central_embed)
 
+            'semi_supervision-label prediction'
             pred_label = {}; pred_label_v = {}; loss_label = {}
             if self.n_class != {}:
                 if self.overall_indicator:
@@ -325,22 +323,28 @@ class heartspaceNN(object):
                             pred_label_v[cls] = tf.unstack(pred_label[cls], axis=-1)[1]
                             pred_label[cls] = tf.argmax(pred_label[cls], axis=-1)
 
-            input_embed, _ = self.cae(f_input_motifImage, self.train_phase, reuse=True)
+            'loss-- Siamese-triple network'
+            loss_s = tf.maximum(0.0, tf.expand_dims(tf.reduce_sum(tf.expand_dims(agg_central_embed, axis = 1)*neg_embed, axis=2), axis = 1)
+                                  - tf.expand_dims(tf.reduce_sum(tf.expand_dims(agg_central_embed, axis = 1)*pos_embed, axis=2), axis = 2) + 1)
+            loss_s = 0.1*tf.reduce_mean(tf.reduce_sum(loss_s, axis = 1))
 
+            'loss-- temporal autoencoder'
+            loss_ae = tf.reduce_mean(tf.boolean_mask(tf.squared_difference(f_central_motifImage, central_decode_input), f_central_motifImage_mask))
+            loss_ae = loss_ae+tf.reduce_mean(tf.boolean_mask(tf.squared_difference(f_pos_motifImage, pos_decode_input), f_pos_motifImage_mask))
+            loss_ae = loss_ae+tf.reduce_mean(tf.boolean_mask(tf.squared_difference(f_neg_motifImage, neg_decode_input), f_neg_motifImage_mask))
+
+            'loss'
+            if self.n_class != {}:
+                loss_joint = loss_s+loss_ae+tf.reduce_mean(tf.stack(list(loss_label.values())))
+            else:
+                loss_joint = loss_s + loss_ae
+
+            'update parameters'
             params = tf.trainable_variables()
             regularizer = 0
-
-            mse_loss = tf.maximum(0.0, tf.expand_dims(tf.reduce_sum(tf.expand_dims(agg_central_embed, axis = 1)*neg_embed, axis=2), axis = 1)
-                                  - tf.expand_dims(tf.reduce_sum(tf.expand_dims(agg_central_embed, axis = 1)*pos_embed, axis=2), axis = 2) + 1)
-            mse_loss = 0.1*tf.reduce_mean(tf.reduce_sum(mse_loss, axis = 1))
-            mse_loss = mse_loss+tf.reduce_mean(tf.boolean_mask(tf.squared_difference(f_central_motifImage, central_decode_input), f_central_motifImage_mask))
-            mse_loss = mse_loss+tf.reduce_mean(tf.boolean_mask(tf.squared_difference(f_pos_motifImage, pos_decode_input), f_pos_motifImage_mask))
-            mse_loss = mse_loss+tf.reduce_mean(tf.boolean_mask(tf.squared_difference(f_neg_motifImage, neg_decode_input), f_neg_motifImage_mask))
-            if self.n_class != {}:
-                mse_loss = mse_loss+tf.reduce_mean(tf.stack(list(loss_label.values())))
             for p in params:
                 regularizer += self.pr * tf.reduce_mean(tf.square(p))
-            loss = mse_loss
+            loss = loss_joint
 
             saver = tf.train.Saver(max_to_keep=1)
 
@@ -359,6 +363,8 @@ class heartspaceNN(object):
             gvs = opt.compute_gradients(loss)
             capped_gvs = [(ClipIfNotNone(grad), var) for grad, var in gvs]
             train_op = opt.apply_gradients(capped_gvs, global_step=self.global_step)
+
+            input_embed, _ = self.cae(f_input_motifImage, self.train_phase, reuse=True)
 
             init = tf.global_variables_initializer()
             return central_motifImage, central_date, pos_motifImage, neg_motifImage, input_motifImage, input_overall_label, \
