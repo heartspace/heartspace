@@ -276,10 +276,12 @@ class heartspaceNN(object):
             self.train_phase = tf.placeholder(tf.bool, name='train_phase')
             self.global_step = tf.Variable(0, trainable=False, name='global_step')
 
-            self.date_embeddings = tf.get_variable('node_embeddings', [2000, self.image_featuredim],
-                                              dtype=tf.float32,
-                                              initializer=layers.xavier_initializer())
-            self.date_embeddings = self.date_embeddings.assign(get_position_encoding(2000,self.image_featuredim))
+            # self.date_embeddings = tf.get_variable('node_embeddings', [2000, self.image_featuredim],
+            #                                   dtype=tf.float32,
+            #                                   initializer=layers.xavier_initializer())
+            # self.date_embeddings = self.date_embeddings.assign(get_position_encoding(2000,self.image_featuredim))
+            self.date_embeddings = tf.Variable(tf.constant(0.0, shape=[2000, self.image_featuredim]),
+                    trainable=False, name="date_embeddings").assign(get_position_encoding(2000,self.image_featuredim))
 
             'data preprocessing'
             f_central_motifImage = convert_image_data_to_float(central_motifImage)
