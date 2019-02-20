@@ -23,4 +23,4 @@ To run the heartspace code, we provide two options.
 `python3 model_date_portal.py`
 
 ## Framework
-<img src="framework.jpg" data-canonical-src="framework.jpg" width="500" height="400" class="center"/>
+<img src="framework.jpg" data-canonical-src="framework.jpg" width="500" height="400" align="middle"/>
