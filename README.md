@@ -16,8 +16,8 @@ To run the heartspace code, we provide two options.
 
 (1) test.py allows run the heartspace model on the real data.
 
-'python3 test.py'
+`python3 test.py`
 
 (2) model_date_portal.py runs the algorithm using synthetic data with the purpose of providing users with the example input and output formats of heartspace.
 
-'python3 model_date_portal.py'
+`python3 model_date_portal.py`
