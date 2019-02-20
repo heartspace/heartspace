@@ -1,8 +1,5 @@
 # heartspace
-This code is for "Your Heart Rate Reveals Who You Are: Representation Learning on Wearable-Sensory Time Series Data".
-## Framework
-<img src="framework.jpg" data-canonical-src="framework.jpg" width="500" height="400" />
-
+This code is for "Your Heart Rate Reveals Who You Are: Representation Learning on Wearable-Sensory Time Series Data"
 ## Environments 
   Python: 2.7 - 3.6
   
@@ -24,3 +21,6 @@ To run the heartspace code, we provide two options.
 (2) model_date_portal.py runs the algorithm using synthetic data with the purpose of providing users with the example input and output formats of heartspace.
 
 `python3 model_date_portal.py`
+
+## Framework
+<img src="framework.jpg" data-canonical-src="framework.jpg" width="500" height="400" class="center"/>
