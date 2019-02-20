@@ -1,7 +1,7 @@
 # heartspace
 This code is for "Your Heart Rate Reveals Who You Are: Representation Learning on Wearable-Sensory Time Series Data".
 ## Framework
-![test](framework.pdf)
+![framework](framework.jpg)
 
 ## Environments 
   Python: 2.7
