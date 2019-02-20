@@ -1,7 +1,9 @@
 # heartspace
 This code is for "Your Heart Rate Reveals Who You Are: Representation Learning on Wearable-Sensory Time Series Data".
 ## Framework
-![framework](framework.jpg=250x250)
+![framework](framework.jpg)
+
+<img src="framework.jpg" data-canonical-src="framework.jpg" width="200" height="400" />
 
 ## Environments 
   Python: 2.7
