@@ -4,7 +4,7 @@ This code is for "Your Heart Rate Reveals Who You Are: Representation Learning o
 <img src="framework.jpg" data-canonical-src="framework.jpg" width="500" height="400" />
 
 ## Environments 
-  Python: 2.7
+  Python: 2.7 - 3.6
   
   Tensor-Flow: 1.6
   
