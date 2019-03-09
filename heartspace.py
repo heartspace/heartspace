@@ -213,7 +213,7 @@ class heartspaceNN(object):
                 with tf.variable_scope('self_att'+str(layer_id), reuse=False):
                     mult_head = MultiHeadedAttention(h = 4, d_model = self.image_featuredim)
                     output_ = mult_head.model(output, output, output)
-                    output = batch_norm(output + output_,
+                    output = batch_norm(output + tf.nn.dropout(output_, self.keep_rate),
                                         center=True,
                                         scale=True,
                                         is_training=self.train_phase,
@@ -221,12 +221,12 @@ class heartspaceNN(object):
                                         scope='bn_layer1',
                                         decay=0.9)
                     output_ = mult_head.PositionwiseFeedForward(output, self.image_featuredim, self.image_featuredim//2)
-                    output = batch_norm(output + output_,
+                    output = batch_norm(output + tf.nn.dropout(output_, self.keep_rate),
                                         center=True,
                                         scale=True,
                                         is_training=self.train_phase,
                                         trainable=True,
-                                        scope='bn_2',
+                                        scope='bn_layer2',
                                         decay=0.9)
             aggregate_embed, alpha = self.temporal_attention(output, time_series_embed, 'str_name')
         return aggregate_embed, alpha
